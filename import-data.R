@@ -1,0 +1,6 @@
+library(tidyverse)
+japan <- read_csv("data/japan.csv")
+View(japan)
+View(japan %>% filter(location == 'Japan/Kyoto'))
+kyoto <- read_csv("data/kyoto.csv")
+View(kyoto)
