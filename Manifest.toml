@@ -2,7 +2,7 @@
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "c87ebfed860f57aaf7a4c8fd1d06ab1f0b1ef706"
+project_hash = "95721a41c892cc4a74faad00319778c8ab96efb4"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -324,6 +324,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Pkg", "Xorg_libXcu
 git-tree-sha1 = "d972031d28c8c8d9d7b41a536ad7bb0c2579caca"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
 version = "3.3.8+0"
+
+[[deps.GLM]]
+deps = ["Distributions", "LinearAlgebra", "Printf", "Reexport", "SparseArrays", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns", "StatsModels"]
+git-tree-sha1 = "884477b9886a52a84378275737e2823a5c98e349"
+uuid = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
+version = "1.8.1"
 
 [[deps.GR]]
 deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Preferences", "Printf", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "UUIDs", "p7zip_jll"]
@@ -807,6 +813,12 @@ version = "0.13.14"
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+
+[[deps.RPkg]]
+deps = ["RCall", "Reexport"]
+git-tree-sha1 = "3406259b809a55885cb2d30dad02fe9b06c6d3f2"
+uuid = "5d58af2d-7d6a-4ad4-9195-74ef913580e2"
+version = "0.1.0"
 
 [[deps.Random]]
 deps = ["SHA", "Serialization"]
