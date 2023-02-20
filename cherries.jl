@@ -1,5 +1,5 @@
 import Pkg;
-#Pkg.activate("peak-bloom-prediction\\");
+Pkg.activate(".");
 Pkg.instantiate()
 
 
@@ -9,6 +9,8 @@ using CSV
 using Chain
 using StatsBase
 using StatsPlots
+using GLM
+
 
 const fpath = "peak-bloom-prediction" 
 
@@ -98,18 +100,23 @@ plot(plts..., xlims = (1950, 2030), ylims = (-10, 200), )
 
 
 ### Estimate weather
-ols = lm(@formula(tmax_avg ~ year + location), historic_temperatures)
+
+
+
+winter_spring = filter( :season => x-> any( x .== ("Winter", "Spring")), historic_temperatures  )
+
+ols = lm(@formula(tmax_avg ~ year + location), winter_spring)
 
 forecast = @chain begin 
-    Iterators.product(seasons, locs, 1950:2032)
+    Iterators.product(["Winter", "Spring"], locs, 1950:2032)
     collect 
     DataFrame
     rename(_, :1 => :season, :2 => :location, :3 => :year)
-    subset(_, :year => ByRow( x-> x>(2022)))
+    subset(_, :year => ByRow( ==(2022)))
 end
 
 
 
 
-forecast.predicted_tmax_avg = predict( ols, forecast)
+forecast.predicted_tmax_avg = predict(ols, forecast)
 
