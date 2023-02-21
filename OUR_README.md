@@ -1,9 +1,9 @@
-Resources:
+## Resources:
 
 https://ucanr.edu/sites/ucmgplacer/files/171583.pdf
 
 
-Potential Variables to try:
+## Potential Variables to try:
 
 Chill Hours: Cherry trees require a certain number of hours of exposure to cold temperatures in order to break dormancy and bloom. You could use data on the number of hours the temperature remains below a certain threshold to predict bloom date.
 
@@ -17,5 +17,8 @@ Bud Development: Observations of the tree's bud development can be used to predi
 
 Historical Bloom Dates: Historical bloom dates can be used to predict future bloom dates. By examining the relationship between bloom dates and other variables such as temperature, chill hours, and photoperiod, you may be able to create a model that accurately predicts future bloom dates based on past data.
 
-Next Steps:
+## Next Steps:
 
+### To get chill hours 
+
+Need to collect data and find out how many hours each month, especially in December and January, the trees experienced below 45 degrees F.
