@@ -1,6 +1,10 @@
+library("rnoaa")
+library(tidyverse)
+
+kyoto <- data.frame(id = "kyoto", latitude = 35.01198, longitude = 135.6761)
 kyoto_stations <- meteo_nearby_stations(lat_lon_df = kyoto, limit = 3, 
                                         var = c("PRCP", "TMAX"), year_min = 2000, year_max = 2000)
-kyoto <- data.frame(id = "kyoto", latitude = 35.01198, longitude = 135.6761)
+
 
 
 summary(kyoto$lat)
