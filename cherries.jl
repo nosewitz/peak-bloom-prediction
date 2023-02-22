@@ -10,7 +10,7 @@ using Chain
 using StatsBase
 using StatsPlots
 using GLM
-
+using Metrics
 
 const fpath = "peak-bloom-prediction" 
 
@@ -19,7 +19,7 @@ const fpath = "peak-bloom-prediction"
 data = CSV.read("data\\".*readdir("data")[6:end], DataFrame)
 
 # restrict looking into four cities 
-keyLocs(x::String) =  any( occursin.(x, ["washingtondc", "Japan/Kyoto", "Switzerland/Liestal", "vancouver"]))
+keyLocs(x::String) =  any( occursin.(x, ["washingtondc", "kyoto", "liestal", "vancouver"]))
 cities = filter(:location => keyLocs, data) 
 
 theme(:dark)
@@ -72,6 +72,14 @@ get_temperature <- function (stationid) {
 """
 
 
+bloom_data = @chain begin cities
+   select(_, :location, :year, :bloom_doy)
+   rename(_, :bloom_doy => :doy) 
+end
+
+@rput bloom_data
+
+
 @rget historic_temperatures
 
 @df historic_temperatures scatter(:year, :tmax_avg, group = :location) 
@@ -83,7 +91,7 @@ get_temperature <- function (stationid) {
 plot(historic_temperatures.year, historic_temperatures.tmax_avg)
 
 seasons = unique(historic_temperatures.season)
-locs = ["washingtondc", "vancouver", "kyoto", "liestal"]
+locs = ["kyoto",	"liestal",	"washingtondc",	"vancouver"]
 
 
 f(df, season, loc) = subset(df, :location => ByRow(n -> n == loc), :season => ByRow(n -> n ==season) )
@@ -95,28 +103,63 @@ plts = [ plot(d.year, d.tmax_avg, color = i % 4) for (i,d) in enumerate(sbs)]
 plot(plts..., xlims = (1950, 2030), ylims = (-10, 200), ) 
 
 
+### Cumulative sum models
+### Run professor code:
+### 
 
 
 
 
+
+### Linear Model
 ### Estimate weather
 
 
 
-winter_spring = filter( :season => x-> any( x .== ("Winter", "Spring")), historic_temperatures  )
+winter_spring = filter( :season => x-> any( x .== ("Winter", "Spring")), historic_temperatures)
 
-ols = lm(@formula(tmax_avg ~ year + location), winter_spring)
+ols = lm(@formula(tmax_avg ~ season*year + location), winter_spring)
+ols2 = lm(@formula(tmax_avg ~ season*year + location), historic_temperatures)
+
+ftest(ols.model)
 
 forecast = @chain begin 
     Iterators.product(["Winter", "Spring"], locs, 1950:2032)
     collect 
     DataFrame
     rename(_, :1 => :season, :2 => :location, :3 => :year)
-    subset(_, :year => ByRow( ==(2022)))
+    #subset(_, :year => ByRow( <=(2022)))
+end
+
+forecast.predicted_tmax_avg = predict(ols2, forecast)
+prs = unstack(forecast, :season, :predicted_tmax_avg)
+
+@chain begin prs
+  leftjoin(_, cities, on = ["location", "year"] )
+  subset(_, :year => ByRow( <=(2022)))
+  lm(@formula(bloom_doy ~ Winter*Spring), _)
+  predict(_, unstack(forecast, :season, :predicted_tmax_avg) )
+  #prs.np = convert.(Int, round.(_))
+end
+
+preds =  @chain begin prs
+  leftjoin(_, cities, on = ["location", "year"] )
+  subset(_, :year => ByRow( x -> 2023 > x > 2010 ) )
 end
 
 
+@chain begin preds
+  select(_, :year, :location, :np)
+  unstack(_, :location, :np)
+end
 
 
-forecast.predicted_tmax_avg = predict(ols, forecast)
+# EVALUATE USING MAE, MSE, etc using Metrics.jl
 
+
+
+
+
+
+
+@df preds plot(:year, :np, group = :location)
