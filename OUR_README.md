@@ -2,6 +2,13 @@
 
 https://ucanr.edu/sites/ucmgplacer/files/171583.pdf
 
+## Station IDs
+
+Washington, D.C. (USA):         USC00186350
+Kyoto (Japan):                  JA000047759
+Liestal-Weideli (Switzerland):  SZ000001940
+Vancouver, BC (Canada):         CA001108395
+
 
 ## Potential Variables to try:
 
