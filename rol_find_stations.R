@@ -14,7 +14,7 @@ wash_ids <- wash_stations$washington %>% select(id)
 wash_ids <- wash_ids[[1]][1:3]
 
 
-#stations <- ghcnd_stations()
+stations <- ghcnd_stations()
 stations %>% filter(id == wash_ids[1]) %>% 
   filter(element == "TMAX" | element == "TMIN") # 1941 to 2023
 stations %>% filter(id == wash_ids[2]) %>% 
@@ -60,12 +60,13 @@ wash.temp3 <- ghcnd_search(stationid = wash_ids[3],
 wash.temp3.join <-
   left_join(wash.temp3$tmax, wash.temp3$tmin, by = c("id", "date")) %>% 
   filter(!is.na(tmax) & !is.na(tmin)) %>% 
+  mutate(month = lubridate::month(date)) %>% filter(month < 6) %>% 
   mutate(year = parse_number(format(date, "%Y"))) %>% 
   group_by(year) %>% 
   nest() %>% 
   mutate(row_num = map(data, nrow)) %>% 
   unnest(row_num) %>% 
-  filter(row_num > 364)
+  filter(row_num > 150)
 nrow(wash.temp3.join)
 
 
@@ -101,24 +102,45 @@ kyoto.temp1.join <-
   mutate(row_num = map(data, nrow)) %>%
   unnest(row_num) %>%
   filter(row_num > 10)
-nrow(kyoto.temp1.join$year)
+nrow(kyoto.temp1.join)
 
 # Liestal-Weideli ####
 
 liestal <- data.frame(id = "liestal", latitude = 47.4814, longitude = 7.730519)
 liestal_stations <- meteo_nearby_stations(lat_lon_df = liestal, limit = 10, 
                                         var = c("PRCP", "TMAX"), year_min = 2000, year_max = 2000)
-summary(liestal_stations)
+
 liestal_stations$liestal
-liestal_stations
+lies.ids <- liestal_stations$liestal %>% select(id)
+lies.ids <- lies.ids[[1]][1:5]
 
 liestal_station <- ghcnd_search(
   stationid = 'SZ000001940',
 )
 
-stations <- ghcnd_stations()
+#stations <- ghcnd_stations()
 stations %>% filter(id == 'SZ000001940') %>% 
   filter(element == "TMAX" | element == "TMIN") # from 1901 to 2023
+
+# count data
+for (i in 1:5) {
+  
+
+  lies.temp1 <- ghcnd_search(stationid = lies.ids[i],
+                             #refresh = TRUE,
+                             var = c("tmax", "tmin"))
+  lies.temp1.join <-
+    left_join(lies.temp1$tmax, lies.temp1$tmin, by = c("id", "date")) %>% 
+    filter(!is.na(tmax) & !is.na(tmin)) %>% 
+    mutate(month = lubridate::month(date)) %>% filter(month < 6) %>% 
+    mutate(year = parse_number(format(date, "%Y"))) %>% 
+    group_by(year) %>% 
+    nest() %>% 
+    mutate(row_num = map(data, nrow)) %>% 
+    unnest(row_num) %>% 
+    filter(row_num > 150)
+  print(paste("ID", i, nrow(lies.temp1.join)))
+}
 
 # Vancouver ####
 
@@ -150,3 +172,22 @@ stations %>% filter(id == vanc_ids[6]) %>%
 stations %>% filter(id == vanc_ids[7]) %>% 
   filter(element == "TMAX" | element == "TMIN") # 1958 to 2023
 
+# count data
+for (i in c(1:3, 5:7)) {
+  
+  
+  vanc.temp1 <- ghcnd_search(stationid = vanc_ids[i],
+                             #refresh = TRUE,
+                             var = c("tmax", "tmin"))
+  vanc.temp1.join <-
+    left_join(vanc.temp1$tmax, vanc.temp1$tmin, by = c("id", "date")) %>% 
+    filter(!is.na(tmax) & !is.na(tmin)) %>% 
+    mutate(month = lubridate::month(date)) %>% filter(month < 6) %>% 
+    mutate(year = parse_number(format(date, "%Y"))) %>% 
+    group_by(year) %>% 
+    nest() %>% 
+    mutate(row_num = map(data, nrow)) %>% 
+    unnest(row_num) %>% 
+    filter(row_num > 150)
+  print(paste("ID", i, nrow(vanc.temp1.join)))
+}
