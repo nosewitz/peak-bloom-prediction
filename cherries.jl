@@ -97,7 +97,7 @@ adjust <- function(table) {
 }
 
 temps <-
-tibble(location = "washingtondc", search_minmax("USC00186350") |> adjust() ) |>
+tibble(location = "washingtondc", search_minmax("USW00013743") |> adjust() ) |>
 bind_rows(tibble(location = "liestal", search_minmax("GME00127786") |> adjust() )) |>
 bind_rows(tibble(location = "kyoto", search_minmax("JA000047759") |> adjust() )) 
 """
