@@ -48,7 +48,7 @@ lin_fun <- function(x) {
 ((pi - (pi*(threshold_temp - max_temp)/(min_temp - max_temp)))/pi)*24
 
 
-x <- seq(0, pi, .1)
+x <- seq(0, 2*pi, length.out = 100)
 
 
 plot(x, cos_fun(x))
@@ -89,3 +89,31 @@ cat("The estimated time spent below", threshold_temp, "degrees is", round(time_s
 
 
 acos()
+
+
+# the gist ####
+
+max_temp <- 55
+min_temp <- 40
+time_period <- 24
+threshold_temp <- 54
+
+cos_fun <- function(x) {
+  (max_temp - mean(c(max_temp, min_temp)))*cos(x) - (threshold_temp - (mean(c(max_temp, min_temp))))
+}
+
+arccos_fun <- function(min, max, threshold) {
+  acos((threshold - mean(c(min, max)))/(max - mean(c(min, max))))
+}
+
+time_under <- ((pi - (arccos_fun(min_temp, max_temp, threshold_temp)))/pi)*time_period
+
+x <- seq(0, 2*pi, length.out = 100)
+
+
+plot(x, cos_fun(x))
+abline(0, 0)
+plot(x, lin_fun(x))
+plot(x, (((pi - (arccos_fun(min_temp, max_temp, threshold_temp)))/pi)*24)/(((pi - (pi*(threshold_temp - max_temp)/(min_temp - max_temp)))/pi)*24))
+threshold_temp[12]
+cos_fun(0)
