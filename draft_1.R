@@ -117,3 +117,12 @@ plot(x, lin_fun(x))
 plot(x, (((pi - (arccos_fun(min_temp, max_temp, threshold_temp)))/pi)*24)/(((pi - (pi*(threshold_temp - max_temp)/(min_temp - max_temp)))/pi)*24))
 threshold_temp[12]
 cos_fun(0)
+
+
+
+# x$total_hours <- c(0, diff(x$year))
+# x$total_hours[x$month == 1] <- ifelse(x$total_hours[x$month == 1] == 1,
+#                                       x$cum_hours_below[x$total_hours == 1] + 
+#                                         x$cum_hours_below[x$month == 12 & x$year[x$month == 12] == x$year[x$month == 1] - 1], 
+#                                       x$cum_hours_below[x$month == 1])
+# x$total_hours[x$month == 12] <- NA

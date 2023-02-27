@@ -1,12 +1,37 @@
+# Code creates variables:
+# wash_chill_hours
+# kyoto_chill_hours
+# lies_chill_hours
+# vanc_chill_hours
+
 library(tidyverse)
 library(rnoaa)
 source("hours_below.R")
 
-chill.wash <- ghcnd_search(stationid = wash_ids[1],
+# function takes df and calculates total chill hours for each year
+get_total <- function(df) {
+  x <- df
+  x$total_hours <- NA
+  for (i in 2:nrow(x)) {
+    if (x$month[i] == 1) {
+      current_year <- x$year[i]
+      prev_year <- x$year[i - 1]
+      dec_index <- which(x$month == 12 & x$year == prev_year)
+      if (length(dec_index) > 0) {
+        x$total_hours[i] <- x$cum_hours_below[i] + x$cum_hours_below[dec_index]
+      }
+    }
+  }
+  return(x)
+}
+
+# Washington DC ####
+
+chill.wash <- ghcnd_search(stationid = "USW00013743",
                            #refresh = TRUE,
                            var = c("tmax", "tmin"))
 chill.wash.join <-
-  left_join(wash.temp1$tmax, wash.temp1$tmin, by = c("id", "date")) %>% 
+  left_join(chill.wash$tmax, chill.wash$tmin, by = c("id", "date")) %>% 
   filter(!is.na(tmax) & !is.na(tmin)) %>% 
   mutate(month = lubridate::month(date)) %>% 
   mutate(year = parse_number(format(date, "%Y"))) %>% 
@@ -14,35 +39,139 @@ chill.wash.join <-
   nest() %>% 
   mutate(row_num = map(data, nrow)) %>% 
   unnest(row_num) %>% 
-  filter(row_num == 31, month == 12 | month == 1)
-#nrow(chill.wash.join)
-
-chill.wash.join$data[[1]][[2]]
-hours_below(chill.wash.join$data[[1]]$tmin, chill.wash.join$data[[1]]$tmax)
-
-chill.wash.join %>% 
-  mutate(chill_sum = map(data, hours_below2)) %>% 
+  filter(row_num == 31, month == 12 | month == 1) %>% 
+  mutate(chill_sum = map(data, hours_below)) %>% 
   unnest(chill_sum)
+#nrow(chill.wash.join)
+wash_chill_hours <- get_total(chill.wash.join) %>% 
+  ungroup() %>% 
+  filter(month == 1) %>% 
+  select(year, data, chill_hours = total_hours)
 
-hours_below2(chill.wash.join)
+# Kyoto ####
 
-x<- chill.wash.join$data[[1]] %>% 
-  mutate(daily_hours_below = -1, 
-         daily_hours_below = ifelse(tmax <= 45, 24, daily_hours_below), 
-         daily_hours_below = ifelse(tmin >= 45, 0, daily_hours_below), 
-         daily_hours_below = ifelse(
-           daily_hours_below < 0, 
-           ((pi - acos((45 - (tmax + tmin)/2)/(tmax - (tmax + tmin)/2)))/pi)*24, 
-           daily_hours_below)) %>% 
-  summarise(cum_hours_below = sum(daily_hours_below))
+chill.kyoto <- ghcnd_search(stationid = "JA000047759",
+                           #refresh = TRUE,
+                           var = c("tmax", "tmin"))
+chill.kyoto.join <-
+  left_join(chill.kyoto$tmax, chill.kyoto$tmin, by = c("id", "date")) %>% 
+  filter(!is.na(tmax) & !is.na(tmin)) %>% 
+  mutate(month = lubridate::month(date)) %>% 
+  mutate(year = parse_number(format(date, "%Y"))) %>% 
+  group_by(year, month) %>% 
+  nest() %>% 
+  mutate(row_num = map(data, nrow)) %>% 
+  unnest(row_num) %>% 
+  filter(row_num == 31, month == 12 | month == 1) %>% 
+  mutate(chill_sum = map(data, hours_below)) %>% 
+  unnest(chill_sum)
+#nrow(chill.wash.join)
+kyoto_chill_hours <- get_total(chill.kyoto.join) %>% 
+  ungroup() %>% 
+  filter(month == 1) %>% 
+  select(year, data, chill_hours = total_hours)
 
 
-acos((45 - mean(c(44,106)))/(106 - mean(c(44, 106))))
-acos((45 - (tmax + tmin)/2)/(tmax - (tmax + tmin)/2))
-((pi - acos((45 - (tmax + tmin)/2)/(tmax - (tmax + tmin)/2)))/pi)*24
-tmax <- 56
-tmin<- -6
-chill.wash.join$data[[1]]$tmax %>% typeof()
-2.272031/3.14
+# Liestal-Weideli (Switzerland) ####
 
-pi
+chill.lies <- ghcnd_search(stationid = "SZ000001940",
+                           #refresh = TRUE,
+                           var = c("tmax", "tmin"))
+chill.lies.join <-
+  left_join(chill.lies$tmax, chill.lies$tmin, by = c("id", "date")) %>% 
+  filter(!is.na(tmax) & !is.na(tmin)) %>% 
+  mutate(month = lubridate::month(date)) %>% 
+  mutate(year = parse_number(format(date, "%Y"))) %>% 
+  group_by(year, month) %>% 
+  nest() %>% 
+  mutate(row_num = map(data, nrow)) %>% 
+  unnest(row_num) %>% 
+  filter(row_num == 31, month == 12 | month == 1) %>% 
+  mutate(chill_sum = map(data, hours_below)) %>% 
+  unnest(chill_sum)
+#nrow(chill.wash.join)
+lies_chill_hours <- get_total(chill.lies.join) %>% 
+  ungroup() %>% 
+  filter(month == 1) %>% 
+  select(year, data, chill_hours = total_hours)
+
+
+# Vancouver ####
+
+chill.vanc <- ghcnd_search(stationid = "CA001108447",
+                           #refresh = TRUE,
+                           var = c("tmax", "tmin"))
+chill.vanc.join <-
+  left_join(chill.vanc$tmax, chill.vanc$tmin, by = c("id", "date")) %>% 
+  filter(!is.na(tmax) & !is.na(tmin)) %>% 
+  mutate(month = lubridate::month(date)) %>% 
+  mutate(year = parse_number(format(date, "%Y"))) %>% 
+  group_by(year, month) %>% 
+  nest() %>% 
+  mutate(row_num = map(data, nrow)) %>% 
+  unnest(row_num) %>% 
+  filter(row_num == 31, month == 12 | month == 1) %>% 
+  mutate(chill_sum = map(data, hours_below)) %>% 
+  unnest(chill_sum)
+#nrow(chill.wash.join)
+vanc_chill_hours <- get_total(chill.vanc.join) %>% 
+  ungroup() %>% 
+  filter(month == 1) %>% 
+  select(year, data, chill_hours = total_hours)
+
+
+# junk ####
+
+x <- chill.lies.join
+x$total_hours <- c(0, diff(x$year))
+x$total_hours[x$month == 1] <- 
+  ifelse(x$total_hours[x$month == 1] == 1, 
+         x$cum_hours_below[x$total_hours == 1 & x$month == 1] + 
+           x$cum_hours_below[], 
+         x$cum_hours_below[x$month == 1])
+x$total_hours[x$month == 12] <- NA
+
+
+x<- chill.lies.join[2:length(row.names(chill.lies.join)), ]
+x$total_hours <- rep(x$cum_hours_below[c(TRUE, FALSE)] + x$cum_hours_below[c(FALSE, TRUE)], each = 2)
+x$total_hours
+
+
+x <- chill.lies.join
+x <- x %>% mutate(adj_year = ifelse(month == 12, year + 1, year))
+x$total_hours <- c(0, diff(x$year))
+
+x.wide <-  x %>% pivot_wider(names_from = month, values_from = cum_hours_below)
+
+# x <- chill.lies.join
+# x$total_hours[x$month == 1] <- 
+#   ifelse(x$total_hours[x$month == 1] == 1, 
+#          x$cum_hours_below[x$total_hours == 1 & x$month == 1] + 
+#            , 
+#          x$cum_hours_below[x$month == 1])
+# x$total_hours[x$month == 12] <- NA
+
+x <- chill.lies.join
+x$total_hours <- NA
+for (i in 2:nrow(x)) {
+  if (x$month[i] == 1) {
+    current_year <- x$year[i]
+    prev_year <- x$year[i - 1]
+    dec_index <- which(x$month == 12 & x$year == prev_year)
+    if (length(dec_index) > 0) {
+      x$total_hours[i] <- x$cum_hours_below[i] + x$cum_hours_below[dec_index]
+    }
+  }
+}
+
+
+# x <- df
+# x$total_hours <- c(0, diff(x$year))
+# x$total_hours[x$month == 1] <- 
+#   ifelse(x$total_hours[x$month == 1] == 1, 
+#          x$cum_hours_below[x$total_hours == 1] + 
+#            x$cum_hours_below[x$month == 12 & x$year[x$month == 12] %in% 
+#                                (x$year[x$month == 1 & x$total_hours == 1] - 1)], 
+#          x$cum_hours_below[x$month == 1])
+# x$total_hours[x$month == 12] <- NA
+# return(x)
