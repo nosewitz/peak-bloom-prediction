@@ -8,7 +8,7 @@ using DataFrames, CSV
 using Chain, Tidier
 using StatsBase, Metrics, GLM
 using StatsPlots
-using Metrics
+
 
 
 # append each .csv into 1 DataFrame. 
@@ -99,8 +99,7 @@ adjust <- function(table) {
 temps <-
 tibble(location = "washingtondc", search_minmax("USW00013743") |> adjust() ) |>
 bind_rows(tibble(location = "liestal", search_minmax("SZ000001940") |> adjust() )) |>
-bind_rows(tibble(location = "kyoto", search_minmax("JA000047759") |> adjust() )) |>
-bind_rows(tibble(location = "vancouver", search_minmax("CA001108447") |> adjust() ))
+bind_rows(tibble(location = "kyoto", search_minmax("JA000047759") |> adjust() )) 
 """
 
 
@@ -133,9 +132,6 @@ GDD <- temps %>%
 # Retrieve data from approaches
 @rget historic_temperatures
 @rget GDD
-
-
-
 
 
 
@@ -205,16 +201,21 @@ vn.np = predict(m7,vn) .|>  round .|> x -> convert(Int, x)
 
 
 
+# Predictions for a csv
+format_preds(dm, vn) |> x -> CSV.write("final_preds.csv", x)
 
-format_preds(dm, vn)
+ids = findall(!ismissing, GDD.doy)
+GDD[ids, :].np = predict(m6) .|> round .|> x -> convert(Int, x)
 
-ls = groupby(GDD, :location)
 
+mae(GDD.doy[ids], predict(m6))
+
+ls = groupby(GDD, :location)[1:3]
 for (i,l) in enumerate(ls)
-
+  ids = findall(!ismissing, l.doy)
   abserr = select(l, Not([:row_num, :data])) |>
-  data ->  predict(m6, data) |>
-  pred -> mae(l.doy, pred) 
+  data ->  predict(m6, data[ids, :]) |>
+  pred -> mae(l.doy[ids], pred) 
   println( "$(l.location[1]): $(round(abserr, digits = 3))")
 end
 
