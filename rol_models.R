@@ -1,18 +1,45 @@
 source("prof_email.R")
 library(leaps)
 
-x<-temp %>%
+# x.prof <-temp %>%
+#   mutate(temp = ifelse(is.na(temp), 0, temp),
+#          year = parse_number(format(date, "%Y"))) %>%
+#   group_by(year) %>%
+#   nest() %>%
+#   left_join(bloom_data) %>%
+#   mutate(temp_sum = map(data, function(df) cumsum(df$temp)[doy]),
+#          temp2_sum = map(data, function(df) cumsum(df$temp^2)[doy]),
+#          temp3_sum = map(data, function(df) cumsum(df$temp^3)[doy]),
+#          row_num  = map(data, nrow)) %>%
+#   unnest(c(temp_sum, temp2_sum, temp3_sum, row_num)) %>%
+#   filter(row_num > 364)
+
+x.prof <-temp %>%
   mutate(temp = ifelse(is.na(temp), 0, temp),
          year = parse_number(format(date, "%Y"))) %>%
   group_by(year) %>%
   nest() %>%
-  left_join(bloom_data) %>%
+  inner_join(all_blooms %>% filter(Location == "Washington") %>% select(), by = "year") %>%
   mutate(temp_sum = map(data, function(df) cumsum(df$temp)[doy]),
          temp2_sum = map(data, function(df) cumsum(df$temp^2)[doy]),
          temp3_sum = map(data, function(df) cumsum(df$temp^3)[doy]),
          row_num  = map(data, nrow)) %>%
   unnest(c(temp_sum, temp2_sum, temp3_sum, row_num)) %>%
   filter(row_num > 364)
+
+x <- (wash_chill_hours %>% select(Year = year, chill_hours)) %>% inner_join((all_blooms %>% filter(Location == "Washington")), 
+                                   by = "Year") %>% inner_join(x.prof)
+
+mod1 <- lm(x$Bloom.Day ~ x$chill_hours)
+summary(mod1)
+
+bloom.regfit.full <- regsubsets(Bloom.day ~ chill_hours, x)
+bloom.summary <- summary(bloom.regfit.full)
+bloom.summary
+
+
+
+
 
 mod1 <- lm(x$doy ~ x$temp_sum)
 mod2 <- lm(x$doy ~ x$temp2_sum)
