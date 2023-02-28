@@ -97,7 +97,7 @@ adjust <- function(table) {
 }
 
 temps <-
-tibble(location = "washingtondc", search_minmax("USW00013743") |> adjust() ) |>
+tibble(location = "washingtondc", search_minmax("USC00186350") |> adjust() ) |>
 bind_rows(tibble(location = "liestal", search_minmax("GME00127786") |> adjust() )) |>
 bind_rows(tibble(location = "kyoto", search_minmax("JA000047759") |> adjust() )) 
 """
@@ -194,6 +194,19 @@ st = unstack(dm, :year, :location, :np)
   hcat(st, makeunique=true)
   @select(year, kyoto, liestal, washingtondc, vancouver)
 end
+
+
+ls = groupby(GDD, :location)
+
+for (i,l) in enumerate(ls)
+
+  abserr = select(l, Not([:row_num, :data])) |>
+  data ->  predict(m6, data) |>
+  pred -> mae(l.doy, pred) 
+  println( "$(l.location[1]): $(round(abserr, digits = 3))")
+end
+
+
 
 ### Linear Model
 ### Estimate weather
