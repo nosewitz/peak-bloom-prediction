@@ -119,6 +119,12 @@ vanc_chill_hours <- get_total(chill.vanc.join) %>%
   filter(month == 1) %>% 
   select(year, data, chill_hours = total_hours)
 
+### Join all 
+chills <-
+tibble(location = "washingtondc", wash_chill_hours ) |>
+bind_rows(tibble(location = "liestal", lies_chill_hours )) |>
+bind_rows(tibble(location = "kyoto", kyoto_chill_hours )) |>
+bind_rows(tibble(location = "vancouver", vanc_chill_hours) )
 
 # junk ####
 
