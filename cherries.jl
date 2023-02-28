@@ -16,7 +16,7 @@ using Metrics
 data = CSV.read("data\\".*readdir("data")[6:end], DataFrame)
 
 # restrict looking into four cities 
-keyLocs(x::String) =  x in ["washingtondc", "kyoto", "liestal"]
+keyLocs(x::String) =  x in ["washingtondc", "kyoto", "liestal", "vancouver"]
 cities = filter(:location => keyLocs, data) 
 
 theme(:dark)
@@ -97,9 +97,10 @@ adjust <- function(table) {
 }
 
 temps <-
-tibble(location = "washingtondc", search_minmax("USC00186350") |> adjust() ) |>
-bind_rows(tibble(location = "liestal", search_minmax("GME00127786") |> adjust() )) |>
-bind_rows(tibble(location = "kyoto", search_minmax("JA000047759") |> adjust() )) 
+tibble(location = "washingtondc", search_minmax("USW00013743") |> adjust() ) |>
+bind_rows(tibble(location = "liestal", search_minmax("SZ000001940") |> adjust() )) |>
+bind_rows(tibble(location = "kyoto", search_minmax("JA000047759") |> adjust() )) |>
+bind_rows(tibble(location = "vancouver", search_minmax("CA001108447") |> adjust() ))
 """
 
 
@@ -146,14 +147,31 @@ GDD <- temps %>%
 seasons = unique(historic_temperatures.season)
 locs = ["kyoto",	"liestal",	"washingtondc"]
 
+function format_preds(data, vn_data)
+  st = unstack(data, :year, :location, :np)
 
+  return @chain vn_data begin                                                                                                                                                                                                      
+    unstack(:location, :np)                                                                                                                                                                                          
+    hcat(st, makeunique=true)
+    @select(year, kyoto, liestal, washingtondc, vancouver)
+  end
+end
+
+function forecast_data()
+  vn = DataFrame(location = repeat(["vancouver"], 10), year = 2023:2032)
+  dm = DataFrame( location = repeat(locs, 10), year = repeat(2023:2032, inner = 3)) 
+  return (dm,vn)
+end
 ### Cumulative sum models
 ### Run professor code:
 ### 
 
 # DF to estimate temp_sums required for extrapolating to 2023-2032
-vn = DataFrame(location = repeat(["vancouver"], 10), year = 2023:2032)
-dm = DataFrame( location = repeat(locs, 10), year = repeat(2023:2032, inner = 3))
+
+
+
+dm, vn = forecast_data()
+
 est1 = lm(@formula(temp_sum ~ location*year), GDD)
 est2 = lm(@formula(temp2_sum ~ location*year), GDD)
 est3 = lm(@formula(temp3_sum ~ location*year), GDD)
@@ -173,9 +191,8 @@ vn.temp3_sum = predict(est33, vn)
 
 
 m1 = lm(@formula( doy ~ temp_sum + location), GDD) 
-m2 = lm(@formula( doy ~ temp_sum * location), GDD) |> r2
-m3 = lm(@formula( doy ~ temp_sum + lat*long), GDD) |> r2
-m4 = lm(@formula( doy ~ temp_sum*lat*long), GDD) |> r2
+m2 = lm(@formula( doy ~ temp_sum * location), GDD) 
+#m4 = lm(@formula( doy ~ temp_sum*lat*long), GDD) |> r2
 
 
 m5 = lm(@formula(doy ~  location*year + temp_sum + temp2_sum), GDD) 
@@ -187,14 +204,9 @@ dm.np = predict(m6, dm) .|> round .|> x -> convert(Int, x)
 vn.np = predict(m7,vn) .|>  round .|> x -> convert(Int, x)
 
 
-st = unstack(dm, :year, :location, :np)
 
-@chain vn begin                                                                                                                                                                                                      
-  unstack(:location, :np)                                                                                                                                                                                          
-  hcat(st, makeunique=true)
-  @select(year, kyoto, liestal, washingtondc, vancouver)
-end
 
+format_preds(dm, vn)
 
 ls = groupby(GDD, :location)
 
@@ -207,6 +219,62 @@ for (i,l) in enumerate(ls)
 end
 
 
+### Chill hours model
+###
+R"""source("rol_chill.R")""" 
+@rget chills 
+
+DD = @chain bloom_data begin 
+  rightjoin(_, chills, on=[:year ,:location])
+  @filter(year>1940)
+  #filter( :location => !=("vancouver"), _)
+end
+
+
+chill_regressor = lm( @formula(chill_hours ~ location*year), DD) # 0.43 r2
+chill_regressor2 = lm( @formula(chill_hours ~ year ), DD)  
+
+ids = findall(!ismissing, DD.doy)
+
+c1 = lm(@formula( doy ~ chill_hours*location + year), DD[ids, :]) #|> adjr2  0.23
+c12 = lm(@formula( doy ~ chill_hours*year), DD[ids, :])   
+
+
+fore,vn = forecast_data()
+
+fore.chill_hours = predict(chill_regressor, fore)
+fore.np = predict(c1, fore) .|> round .|> x -> trunc(Int, x) 
+
+vn.chill_hours = predict(chill_regressor2, vn)
+vn.np = predict(c12, vn)
+
+format_preds(fore,vn)
+
+cop = @chain bloom_data begin 
+  rightjoin(_, chills, on=[:year ,:location])
+  @filter(year>1940)
+  filter(:location => !=("vancouver"), _)
+end
+
+for (i,l) in enumerate(groupby(cop,  :location))
+
+  ids = completecases(l)
+  abserr = select(l, Not(:data)) |>
+  data ->  predict(c1, data[ids, :]) |>
+  pred -> mae(l.doy[ids], pred) 
+  println( "$(l.location[1]) MAE: $(round(abserr, digits = 3))")
+end
+
+### Chill hours + GDD
+
+DF = @chain DD begin
+  leftjoin(GDD, on=[:location, :year], makeunique=true)
+  select(Not( [:doy_1, :data_1, :data, :row_num] )  )
+end
+
+ lm(@formula( doy ~ location + chill_hours*temp_sum*year + temp2_sum), DF) |> adjr2
+
+
 
 ### Linear Model
 ### Estimate weather
@@ -214,7 +282,7 @@ end
 
 winter_spring = filter( :season => x-> any( x .== ("Winter", "Spring")), historic_temperatures)
 
-ols = lm(@formula(tmax_avg ~ season*year + location), winter_spring)
+ols = lm(@formula(tmax_avg ~ season*year + location), winter_spring) 
 ols2 = lm(@formula(tmax_avg ~ season*year + location), historic_temperatures)
 
 ftest(ols.model)
@@ -230,12 +298,14 @@ end
 forecast.predicted_tmax_avg = predict(ols2, forecast)
 prs = unstack(forecast, :season, :predicted_tmax_avg)
 
+
+# This model yields R2 adj of 0.23
 @chain begin prs
   leftjoin(_, cities, on = ["location", "year"] )
   subset(_, :year => ByRow( <=(2022)))
   lm(@formula(bloom_doy ~ Winter*Spring), _)
   predict(_, unstack(forecast, :season, :predicted_tmax_avg) )
-  #prs.np = convert.(Int, round.(_))
+  prs.np = convert.(Int, round.(_))
 end
 
 preds =  @chain begin prs
@@ -249,13 +319,3 @@ end
   unstack(_, :location, :np)
 end
 
-
-# EVALUATE USING MAE, MSE, etc using Metrics.jl
-
-
-
-
-
-
-
-@df preds plot(:year, :np, group = :location)
