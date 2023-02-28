@@ -9,7 +9,7 @@ library(rnoaa)
 source("hours_below.R")
 
 # function takes df and calculates total chill hours for each year
-set_total <- function(df) {
+get_total <- function(df) {
   x <- df
   x$total_hours <- NA
   for (i in 2:nrow(x)) {
